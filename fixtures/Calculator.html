@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMADirect HTML Canvas Conformance - Retained Mode</title>
+    <style>
+        body {
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+            font-family: "Segoe UI", sans-serif;
+            user-select: none;
+        }
+        canvas {
+            background: transparent;
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="calculatorDynamicForegroundCanvas" width="340" height="520"></canvas>
+
+    <script>
+        const dynamicForegroundCanvas = document.getElementById("calculatorDynamicForegroundCanvas");
+        const dynamicForegroundContext = dynamicForegroundCanvas.getContext("2d");
+
+        // Retained backing buffer for static geometry
+        const staticBackingBufferCanvas = document.createElement("canvas");
+        staticBackingBufferCanvas.width = dynamicForegroundCanvas.width;
+        staticBackingBufferCanvas.height = dynamicForegroundCanvas.height;
+        const staticBackingBufferContext = staticBackingBufferCanvas.getContext("2d");
+
+        const buttonDefinitions = [
+            { buttonLabel: "C", buttonCategory: "function", gridColumnIndex: 0, gridRowIndex: 0, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "±", buttonCategory: "function", gridColumnIndex: 1, gridRowIndex: 0, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "%", buttonCategory: "function", gridColumnIndex: 2, gridRowIndex: 0, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "÷", buttonCategory: "operator", gridColumnIndex: 3, gridRowIndex: 0, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "7", buttonCategory: "numeric", gridColumnIndex: 0, gridRowIndex: 1, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "8", buttonCategory: "numeric", gridColumnIndex: 1, gridRowIndex: 1, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "9", buttonCategory: "numeric", gridColumnIndex: 2, gridRowIndex: 1, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "×", buttonCategory: "operator", gridColumnIndex: 3, gridRowIndex: 1, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "4", buttonCategory: "numeric", gridColumnIndex: 0, gridRowIndex: 2, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "5", buttonCategory: "numeric", gridColumnIndex: 1, gridRowIndex: 2, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "6", buttonCategory: "numeric", gridColumnIndex: 2, gridRowIndex: 2, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "−", buttonCategory: "operator", gridColumnIndex: 3, gridRowIndex: 2, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "1", buttonCategory: "numeric", gridColumnIndex: 0, gridRowIndex: 3, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "2", buttonCategory: "numeric", gridColumnIndex: 1, gridRowIndex: 3, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "3", buttonCategory: "numeric", gridColumnIndex: 2, gridRowIndex: 3, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "+", buttonCategory: "operator", gridColumnIndex: 3, gridRowIndex: 3, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "0", buttonCategory: "numeric", gridColumnIndex: 0, gridRowIndex: 4, columnSpan: 2, rowSpan: 1 },
+            { buttonLabel: ".", buttonCategory: "numeric", gridColumnIndex: 2, gridRowIndex: 4, columnSpan: 1, rowSpan: 1 },
+            { buttonLabel: "=", buttonCategory: "operator", gridColumnIndex: 3, gridRowIndex: 4, columnSpan: 1, rowSpan: 1 }
+        ];
+
+        const calculatorExecutionState = {
+            currentDisplayString: "0",
+            currentEquationString: "",
+            previousOperandValue: null,
+            activeMathematicalOperator: null,
+            requiresDisplayResetOnNextInput: false,
+            currentlyHoveredButtonLabel: null,
+            currentlyPressedButtonLabel: null,
+            isWindowCloseButtonHovered: false,
+            isWindowMinimizeButtonHovered: false,
+            pointerCoordinateX: -1000.0,
+            pointerCoordinateY: -1000.0,
+            deviceCanvasWidth: 340.0,
+            deviceCanvasHeight: 520.0,
+            isRenderFrameRequested: true,
+            lastExecutedOperator: null,
+            lastExecutedOperand: 0.0,
+            hasExecutedRepeatedOperation: false
+        };
+
+        // Pre-calculate structural dimensions to avoid mechanical recalculation
+        const deviceCanvasWidth = calculatorExecutionState.deviceCanvasWidth;
+        const deviceCanvasHeight = calculatorExecutionState.deviceCanvasHeight;
+        const deviceCoordinateX = 0;
+        const deviceCoordinateY = 0;
+        const lcdScreenHeight = deviceCanvasHeight * 0.20;
+        const keypadVerticalOffset = deviceCoordinateY + lcdScreenHeight + 20.0;
+        const keypadHeight = deviceCanvasHeight - lcdScreenHeight - 32.0;
+        const gridCellWidth = (deviceCanvasWidth - 24.0) / 4.0;
+        const gridCellHeight = keypadHeight / 5.0;
+
+        function executeCalculatorStateTransition(buttonLabel, buttonCategory) {
+            if (buttonCategory === 'numeric') {
+                if (calculatorExecutionState.currentDisplayString === '0' || calculatorExecutionState.requiresDisplayResetOnNextInput) {
+                    calculatorExecutionState.currentDisplayString = buttonLabel === '.' ? '0.' : buttonLabel;
+                    calculatorExecutionState.requiresDisplayResetOnNextInput = false;
+                } else {
+                    if (buttonLabel === '.' && calculatorExecutionState.currentDisplayString.includes('.')) return;
+                    calculatorExecutionState.currentDisplayString += buttonLabel;
+                }
+                calculatorExecutionState.hasExecutedRepeatedOperation = false;
+            } else if (buttonCategory === 'function') {
+                if (buttonLabel === 'C') {
+                    calculatorExecutionState.currentDisplayString = '0';
+                    calculatorExecutionState.currentEquationString = '';
+                    calculatorExecutionState.previousOperandValue = null;
+                    calculatorExecutionState.activeMathematicalOperator = null;
+                    calculatorExecutionState.requiresDisplayResetOnNextInput = false;
+                    calculatorExecutionState.lastExecutedOperator = null;
+                    calculatorExecutionState.hasExecutedRepeatedOperation = false;
+                } else if (buttonLabel === '±') {
+                    const parsedValue = parseFloat(calculatorExecutionState.currentDisplayString);
+                    calculatorExecutionState.currentDisplayString = String(-parsedValue);
+                } else if (buttonLabel === '%') {
+                    const percentageValue = parseFloat(calculatorExecutionState.currentDisplayString) / 100.0;
+                    calculatorExecutionState.currentDisplayString = String(percentageValue);
+                }
+            } else if (buttonCategory === 'operator') {
+                if (buttonLabel === '=') {
+                    if (calculatorExecutionState.activeMathematicalOperator !== null && calculatorExecutionState.previousOperandValue !== null) {
+                        const firstOperand = calculatorExecutionState.previousOperandValue;
+                        const secondOperand = parseFloat(calculatorExecutionState.currentDisplayString);
+                        calculatorExecutionState.lastExecutedOperator = calculatorExecutionState.activeMathematicalOperator;
+                        calculatorExecutionState.lastExecutedOperand = secondOperand;
+                        calculatorExecutionState.hasExecutedRepeatedOperation = true;
+                        
+                        let evaluationResult = secondOperand;
+                        if (calculatorExecutionState.activeMathematicalOperator === '+') evaluationResult = firstOperand + secondOperand;
+                        else if (calculatorExecutionState.activeMathematicalOperator === '−') evaluationResult = firstOperand - secondOperand;
+                        else if (calculatorExecutionState.activeMathematicalOperator === '×') evaluationResult = firstOperand * secondOperand;
+                        else if (calculatorExecutionState.activeMathematicalOperator === '÷') evaluationResult = (secondOperand === 0) ? 0.0 : (firstOperand / secondOperand);
+                        
+                        calculatorExecutionState.currentEquationString = `${firstOperand} ${calculatorExecutionState.activeMathematicalOperator} ${secondOperand} =`;
+                        calculatorExecutionState.currentDisplayString = String(evaluationResult);
+                        calculatorExecutionState.previousOperandValue = null;
+                        calculatorExecutionState.activeMathematicalOperator = null;
+                        calculatorExecutionState.requiresDisplayResetOnNextInput = true;
+                    } else if (calculatorExecutionState.hasExecutedRepeatedOperation && calculatorExecutionState.lastExecutedOperator !== null) {
+                        const firstOperand = parseFloat(calculatorExecutionState.currentDisplayString);
+                        const secondOperand = calculatorExecutionState.lastExecutedOperand;
+                        const repeatedOperator = calculatorExecutionState.lastExecutedOperator;
+                        
+                        let evaluationResult = secondOperand;
+                        if (repeatedOperator === '+') evaluationResult = firstOperand + secondOperand;
+                        else if (repeatedOperator === '−') evaluationResult = firstOperand - secondOperand;
+                        else if (repeatedOperator === '×') evaluationResult = firstOperand * secondOperand;
+                        else if (repeatedOperator === '÷') evaluationResult = (secondOperand === 0) ? 0.0 : (firstOperand / secondOperand);
+
+                        calculatorExecutionState.currentEquationString = `${firstOperand} ${repeatedOperator} ${secondOperand} =`;
+                        calculatorExecutionState.currentDisplayString = String(evaluationResult);
+                        calculatorExecutionState.requiresDisplayResetOnNextInput = true;
+                    }
+                } else {
+                    calculatorExecutionState.previousOperandValue = parseFloat(calculatorExecutionState.currentDisplayString);
+                    calculatorExecutionState.activeMathematicalOperator = buttonLabel;
+                    calculatorExecutionState.currentEquationString = `${calculatorExecutionState.currentDisplayString} ${buttonLabel}`;
+                    calculatorExecutionState.requiresDisplayResetOnNextInput = true;
+                    calculatorExecutionState.hasExecutedRepeatedOperation = false;
+                }
+            }
+        }
+
+        function renderStaticBackgroundLayer() {
+            // Card Body Foundation
+            staticBackingBufferContext.fillStyle = "rgba(32, 32, 32, 0.85)";
+            staticBackingBufferContext.beginPath();
+            staticBackingBufferContext.roundRect(deviceCoordinateX, deviceCoordinateY, deviceCanvasWidth, deviceCanvasHeight, 12);
+            staticBackingBufferContext.fill();
+            staticBackingBufferContext.strokeStyle = "rgba(255, 255, 255, 0.15)";
+            staticBackingBufferContext.lineWidth = 1;
+            staticBackingBufferContext.stroke();
+
+            // LCD Display Plate Foundation
+            const lcdScreenXCoordinate = deviceCoordinateX + 12.0;
+            const lcdScreenYCoordinate = deviceCoordinateY + 38.0;
+            const lcdScreenWidth = deviceCanvasWidth - 24.0;
+            const lcdScreenInternalHeight = lcdScreenHeight - 14.0;
+
+            staticBackingBufferContext.fillStyle = "rgba(20, 20, 20, 0.60)";
+            staticBackingBufferContext.beginPath();
+            staticBackingBufferContext.roundRect(lcdScreenXCoordinate, lcdScreenYCoordinate, lcdScreenWidth, lcdScreenInternalHeight, 8);
+            staticBackingBufferContext.fill();
+            staticBackingBufferContext.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            staticBackingBufferContext.stroke();
+
+            // Base Keypad Geometry Initialization
+            buttonDefinitions.forEach(buttonSpecification => {
+                const buttonCoordinateX = deviceCoordinateX + 12.0 + (buttonSpecification.gridColumnIndex * gridCellWidth) + 3.0;
+                const buttonCoordinateY = keypadVerticalOffset + (buttonSpecification.gridRowIndex * gridCellHeight) + 3.0;
+                const buttonPhysicalWidth = (gridCellWidth * buttonSpecification.columnSpan) - 6.0;
+                const buttonPhysicalHeight = (gridCellHeight * buttonSpecification.rowSpan) - 6.0;
+
+                let defaultBackgroundColor = "";
+                if (buttonSpecification.buttonCategory === 'numeric') defaultBackgroundColor = "rgba(255, 255, 255, 0.08)";
+                else if (buttonSpecification.buttonCategory === 'function') defaultBackgroundColor = "rgba(255, 255, 255, 0.10)";
+                else defaultBackgroundColor = "rgba(51, 110, 243, 0.85)";
+
+                staticBackingBufferContext.fillStyle = defaultBackgroundColor;
+                staticBackingBufferContext.beginPath();
+                staticBackingBufferContext.roundRect(buttonCoordinateX, buttonCoordinateY, buttonPhysicalWidth, buttonPhysicalHeight, 6);
+                staticBackingBufferContext.fill();
+
+                staticBackingBufferContext.strokeStyle = "rgba(255, 255, 255, 0.08)";
+                staticBackingBufferContext.lineWidth = 1;
+                staticBackingBufferContext.stroke();
+
+                staticBackingBufferContext.fillStyle = "#FFFFFF";
+                staticBackingBufferContext.font = `${buttonSpecification.buttonCategory !== 'function' ? '600' : '400'} 14px Segoe UI`;
+                staticBackingBufferContext.textAlign = "center";
+                staticBackingBufferContext.textBaseline = "middle";
+                staticBackingBufferContext.fillText(buttonSpecification.buttonLabel, buttonCoordinateX + buttonPhysicalWidth / 2, buttonCoordinateY + buttonPhysicalHeight / 2 + 1);
+            });
+        }
+
+        function drawIndividualButtonState(context, buttonSpecification, overrideBackgroundColor, overrideBorderColor, overrideTextColor) {
+            const buttonCoordinateX = deviceCoordinateX + 12.0 + (buttonSpecification.gridColumnIndex * gridCellWidth) + 3.0;
+            const buttonCoordinateY = keypadVerticalOffset + (buttonSpecification.gridRowIndex * gridCellHeight) + 3.0;
+            const buttonPhysicalWidth = (gridCellWidth * buttonSpecification.columnSpan) - 6.0;
+            const buttonPhysicalHeight = (gridCellHeight * buttonSpecification.rowSpan) - 6.0;
+
+            context.fillStyle = overrideBackgroundColor;
+            context.beginPath();
+            context.roundRect(buttonCoordinateX, buttonCoordinateY, buttonPhysicalWidth, buttonPhysicalHeight, 6);
+            context.fill();
+
+            context.strokeStyle = overrideBorderColor;
+            context.lineWidth = 1;
+            context.stroke();
+
+            context.fillStyle = overrideTextColor;
+            context.font = `${buttonSpecification.buttonCategory !== 'function' ? '600' : '400'} 14px Segoe UI`;
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText(buttonSpecification.buttonLabel, buttonCoordinateX + buttonPhysicalWidth / 2, buttonCoordinateY + buttonPhysicalHeight / 2 + 1);
+        }
+
+        function renderDynamicForegroundLayer() {
+            if (!calculatorExecutionState.isRenderFrameRequested) return;
+            calculatorExecutionState.isRenderFrameRequested = false;
+
+            // Blit retained static backdrop
+            dynamicForegroundContext.clearRect(0, 0, deviceCanvasWidth, deviceCanvasHeight);
+            dynamicForegroundContext.drawImage(staticBackingBufferCanvas, 0, 0);
+
+            // Dynamic Window Controls
+            const captionControlWidth = 46.0;
+            const captionControlHeight = 32.0;
+            const closeButtonCoordinateX = deviceCanvasWidth - captionControlWidth;
+            const minimizeButtonCoordinateX = deviceCanvasWidth - (captionControlWidth * 2.0);
+
+            if (calculatorExecutionState.isWindowMinimizeButtonHovered) {
+                dynamicForegroundContext.fillStyle = "rgba(255, 255, 255, 0.15)";
+                dynamicForegroundContext.fillRect(minimizeButtonCoordinateX, 0, captionControlWidth, captionControlHeight);
+            }
+            dynamicForegroundContext.fillStyle = calculatorExecutionState.isWindowMinimizeButtonHovered ? "#FFFFFF" : "rgba(255, 255, 255, 0.50)";
+            dynamicForegroundContext.fillRect(minimizeButtonCoordinateX + 18, 15, 10, 1);
+
+            if (calculatorExecutionState.isWindowCloseButtonHovered) {
+                dynamicForegroundContext.fillStyle = "#E81123";
+                dynamicForegroundContext.fillRect(closeButtonCoordinateX, 0, captionControlWidth, captionControlHeight);
+            }
+            dynamicForegroundContext.fillStyle = calculatorExecutionState.isWindowCloseButtonHovered ? "#FFFFFF" : "rgba(255, 255, 255, 0.50)";
+            dynamicForegroundContext.font = "11px Segoe UI";
+            dynamicForegroundContext.textAlign = "center";
+            dynamicForegroundContext.textBaseline = "middle";
+            dynamicForegroundContext.fillText("\u2715", closeButtonCoordinateX + captionControlWidth / 2, captionControlHeight / 2 + 1);
+
+            // Dynamic Text Typography
+            const lcdScreenXCoordinate = deviceCoordinateX + 12.0;
+            const lcdScreenYCoordinate = deviceCoordinateY + 38.0;
+            const lcdScreenWidth = deviceCanvasWidth - 24.0;
+            const lcdScreenInternalHeight = lcdScreenHeight - 14.0;
+
+            dynamicForegroundContext.fillStyle = "rgba(255, 255, 255, 0.50)";
+            dynamicForegroundContext.font = "11px Segoe UI";
+            dynamicForegroundContext.textAlign = "right";
+            dynamicForegroundContext.fillText(calculatorExecutionState.currentEquationString || " ", lcdScreenXCoordinate + lcdScreenWidth - 12, lcdScreenYCoordinate + lcdScreenInternalHeight * 0.35);
+
+            const stringCharacterCount = calculatorExecutionState.currentDisplayString.length;
+            const dynamicFontSize = stringCharacterCount > 15 ? 14 : (stringCharacterCount > 10 ? 20 : 28);
+            dynamicForegroundContext.fillStyle = "#FFFFFF";
+            dynamicForegroundContext.font = `600 ${dynamicFontSize}px Segoe UI`;
+            dynamicForegroundContext.fillText(calculatorExecutionState.currentDisplayString, lcdScreenXCoordinate + lcdScreenWidth - 12, lcdScreenYCoordinate + lcdScreenInternalHeight * 0.75);
+
+            // Dynamic Keypad State Processing
+            buttonDefinitions.forEach(buttonSpecification => {
+                const isCurrentlyHovered = calculatorExecutionState.currentlyHoveredButtonLabel === buttonSpecification.buttonLabel;
+                const isCurrentlyPressed = calculatorExecutionState.currentlyPressedButtonLabel === buttonSpecification.buttonLabel;
+                const isCurrentlyActiveOperator = calculatorExecutionState.activeMathematicalOperator === buttonSpecification.buttonLabel;
+
+                if (isCurrentlyActiveOperator || isCurrentlyPressed || isCurrentlyHovered) {
+                    let activeBackgroundColor = "";
+                    let activeTextColor = "#FFFFFF";
+                    let activeBorderColor = isCurrentlyPressed ? "rgba(0, 0, 0, 0.20)" : "rgba(255, 255, 255, 0.08)";
+
+                    if (isCurrentlyActiveOperator) {
+                        activeBackgroundColor = "#FFFFFF";
+                        activeTextColor = "#0F172A";
+                    } else if (isCurrentlyPressed) {
+                        activeBackgroundColor = "rgba(255, 255, 255, 0.25)";
+                    } else if (isCurrentlyHovered) {
+                        activeBackgroundColor = buttonSpecification.buttonCategory === 'operator' ? "#336EF3" : "rgba(255, 255, 255, 0.15)";
+                    }
+
+                    drawIndividualButtonState(dynamicForegroundContext, buttonSpecification, activeBackgroundColor, activeBorderColor, activeTextColor);
+                }
+
+                // 8-Neighbor Proximity Geometry Extraction
+                if (calculatorExecutionState.currentlyHoveredButtonLabel) {
+                    const hoveredButtonSpecification = buttonDefinitions.find(targetButton => targetButton.buttonLabel === calculatorExecutionState.currentlyHoveredButtonLabel);
+                    if (hoveredButtonSpecification) {
+                        const hoveredGridColumnIndex = hoveredButtonSpecification.gridColumnIndex;
+                        const hoveredGridRowIndex = hoveredButtonSpecification.gridRowIndex;
+                        const minimumGridColumnIntersection = buttonSpecification.gridColumnIndex;
+                        const maximumGridColumnIntersection = buttonSpecification.gridColumnIndex + buttonSpecification.columnSpan - 1;
+                        
+                        let gridColumnDifference = 0;
+                        if (hoveredGridColumnIndex < minimumGridColumnIntersection) gridColumnDifference = minimumGridColumnIntersection - hoveredGridColumnIndex;
+                        else if (hoveredGridColumnIndex > maximumGridColumnIntersection) gridColumnDifference = hoveredGridColumnIndex - maximumGridColumnIntersection;
+                        
+                        const gridRowDifference = Math.abs(buttonSpecification.gridRowIndex - hoveredGridRowIndex);
+
+                        if (gridColumnDifference <= 1 && gridRowDifference <= 1) {
+                            let proximityGlowColor = '';
+                            if (gridColumnDifference === 0 && gridRowDifference === 0) proximityGlowColor = 'rgba(255, 255, 255, 0.50)';
+                            else if ((gridColumnDifference + gridRowDifference) === 1) proximityGlowColor = 'rgba(255, 255, 255, 0.30)';
+                            else proximityGlowColor = 'rgba(255, 255, 255, 0.15)';
+
+                            const baseCoordinateX = deviceCoordinateX + 12.0 + (buttonSpecification.gridColumnIndex * gridCellWidth) + 3.0;
+                            const baseCoordinateY = keypadVerticalOffset + (buttonSpecification.gridRowIndex * gridCellHeight) + 3.0;
+                            const basePhysicalWidth = (gridCellWidth * buttonSpecification.columnSpan) - 6.0;
+                            const basePhysicalHeight = (gridCellHeight * buttonSpecification.rowSpan) - 6.0;
+
+                            dynamicForegroundContext.strokeStyle = proximityGlowColor;
+                            dynamicForegroundContext.lineWidth = 1.5;
+                            dynamicForegroundContext.beginPath();
+                            dynamicForegroundContext.roundRect(baseCoordinateX - 0.5, baseCoordinateY - 0.5, basePhysicalWidth + 1.0, basePhysicalHeight + 1.0, 6.0);
+                            dynamicForegroundContext.stroke();
+                        }
+                    }
+                }
+            });
+        }
+
+        function calculateButtonIntersection(pointerCoordinateX, pointerCoordinateY) {
+            for (const buttonSpecification of buttonDefinitions) {
+                const intersectionCoordinateX = 12.0 + (buttonSpecification.gridColumnIndex * gridCellWidth) + 3.0;
+                const intersectionCoordinateY = keypadVerticalOffset + (buttonSpecification.gridRowIndex * gridCellHeight) + 3.0;
+                const intersectionPhysicalWidth = (gridCellWidth * buttonSpecification.columnSpan) - 6.0;
+                const intersectionPhysicalHeight = (gridCellHeight * buttonSpecification.rowSpan) - 6.0;
+
+                if (pointerCoordinateX >= intersectionCoordinateX && pointerCoordinateX <= (intersectionCoordinateX + intersectionPhysicalWidth) && pointerCoordinateY >= intersectionCoordinateY && pointerCoordinateY <= (intersectionCoordinateY + intersectionPhysicalHeight)) {
+                    return buttonSpecification;
+                }
+            }
+            return null;
+        }
+
+        function updateMouseCoordinatesAndHoverState(mouseEvent) {
+            const canvasBoundingRectangle = dynamicForegroundCanvas.getBoundingClientRect();
+            calculatorExecutionState.pointerCoordinateX = mouseEvent.clientX - canvasBoundingRectangle.left;
+            calculatorExecutionState.pointerCoordinateY = mouseEvent.clientY - canvasBoundingRectangle.top;
+
+            const isPointerOverCloseButtonArea = (calculatorExecutionState.pointerCoordinateX >= deviceCanvasWidth - 46.0 && calculatorExecutionState.pointerCoordinateY <= 32.0 && calculatorExecutionState.pointerCoordinateY >= 0);
+            const isPointerOverMinimizeButtonArea = (calculatorExecutionState.pointerCoordinateX >= deviceCanvasWidth - 92.0 && calculatorExecutionState.pointerCoordinateX < deviceCanvasWidth - 46.0 && calculatorExecutionState.pointerCoordinateY <= 32.0 && calculatorExecutionState.pointerCoordinateY >= 0);
+
+            if (isPointerOverCloseButtonArea !== calculatorExecutionState.isWindowCloseButtonHovered || isPointerOverMinimizeButtonArea !== calculatorExecutionState.isWindowMinimizeButtonHovered) {
+                calculatorExecutionState.isWindowCloseButtonHovered = isPointerOverCloseButtonArea;
+                calculatorExecutionState.isWindowMinimizeButtonHovered = isPointerOverMinimizeButtonArea;
+                calculatorExecutionState.isRenderFrameRequested = true;
+            }
+
+            const intersectedButtonSpecification = calculateButtonIntersection(calculatorExecutionState.pointerCoordinateX, calculatorExecutionState.pointerCoordinateY);
+            const newlyHoveredButtonLabel = intersectedButtonSpecification ? intersectedButtonSpecification.buttonLabel : null;
+            
+            if (newlyHoveredButtonLabel !== calculatorExecutionState.currentlyHoveredButtonLabel) {
+                calculatorExecutionState.currentlyHoveredButtonLabel = newlyHoveredButtonLabel;
+                calculatorExecutionState.isRenderFrameRequested = true;
+            }
+        }
+
+        dynamicForegroundCanvas.addEventListener("mousemove", (mouseEvent) => {
+            updateMouseCoordinatesAndHoverState(mouseEvent);
+            if (calculatorExecutionState.isRenderFrameRequested) requestAnimationFrame(renderDynamicForegroundLayer);
+        });
+
+        dynamicForegroundCanvas.addEventListener("mouseleave", () => {
+            calculatorExecutionState.currentlyHoveredButtonLabel = null;
+            calculatorExecutionState.isWindowCloseButtonHovered = false;
+            calculatorExecutionState.isWindowMinimizeButtonHovered = false;
+            calculatorExecutionState.pointerCoordinateX = -1000;
+            calculatorExecutionState.pointerCoordinateY = -1000;
+            calculatorExecutionState.isRenderFrameRequested = true;
+            requestAnimationFrame(renderDynamicForegroundLayer);
+        });
+
+        dynamicForegroundCanvas.addEventListener("mousedown", () => {
+            if (calculatorExecutionState.isWindowCloseButtonHovered || calculatorExecutionState.isWindowMinimizeButtonHovered) return;
+            const intersectedButtonSpecification = calculateButtonIntersection(calculatorExecutionState.pointerCoordinateX, calculatorExecutionState.pointerCoordinateY);
+            if (intersectedButtonSpecification) {
+                calculatorExecutionState.currentlyPressedButtonLabel = intersectedButtonSpecification.buttonLabel;
+                executeCalculatorStateTransition(intersectedButtonSpecification.buttonLabel, intersectedButtonSpecification.buttonCategory);
+                calculatorExecutionState.isRenderFrameRequested = true;
+                requestAnimationFrame(renderDynamicForegroundLayer);
+            }
+        });
+
+        dynamicForegroundCanvas.addEventListener("mouseup", () => {
+            if (calculatorExecutionState.currentlyPressedButtonLabel !== null) {
+                calculatorExecutionState.currentlyPressedButtonLabel = null;
+                calculatorExecutionState.isRenderFrameRequested = true;
+                requestAnimationFrame(renderDynamicForegroundLayer);
+            }
+        });
+
+        document.addEventListener("keydown", (keyboardEvent) => {
+            const keyboardMappingDictionary = {
+                'Escape': { mappedLabel: 'C', mappedCategory: 'function' },
+                'Backspace': { mappedLabel: 'C', mappedCategory: 'function' },
+                '+': { mappedLabel: '+', mappedCategory: 'operator' },
+                '-': { mappedLabel: '−', mappedCategory: 'operator' },
+                '*': { mappedLabel: '×', mappedCategory: 'operator' },
+                '/': { mappedLabel: '÷', mappedCategory: 'operator' },
+                'Enter': { mappedLabel: '=', mappedCategory: 'operator' },
+                '=': { mappedLabel: '=', mappedCategory: 'operator' }
+            };
+
+            if (keyboardEvent.key >= '0' && keyboardEvent.key <= '9') {
+                executeCalculatorStateTransition(keyboardEvent.key, 'numeric');
+                calculatorExecutionState.isRenderFrameRequested = true;
+            } else if (keyboardEvent.key === '.') {
+                executeCalculatorStateTransition('.', 'numeric');
+                calculatorExecutionState.isRenderFrameRequested = true;
+            } else if (keyboardMappingDictionary[keyboardEvent.key]) {
+                executeCalculatorStateTransition(keyboardMappingDictionary[keyboardEvent.key].mappedLabel, keyboardMappingDictionary[keyboardEvent.key].mappedCategory);
+                calculatorExecutionState.isRenderFrameRequested = true;
+            }
+            if (calculatorExecutionState.isRenderFrameRequested) requestAnimationFrame(renderDynamicForegroundLayer);
+        });
+
+        // Initialize execution sequence
+        renderStaticBackgroundLayer();
+        requestAnimationFrame(renderDynamicForegroundLayer);
+    </script>
+</body>
+</html>

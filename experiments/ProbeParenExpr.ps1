@@ -1,0 +1,1 @@
+$s='(y + 1)'; $t=$null;$e=$null; $ast=[System.Management.Automation.Language.Parser]::ParseInput($s,[ref]$t,[ref]$e); Write-Host "Errors:$($e.Count)"; $ast.EndBlock.Statements | ForEach-Object {Write-Host "Stmt Type:"$_.GetType().Name; $_.PipelineElements | ForEach-Object { Write-Host "  Elem Type:"$_.GetType().Name } }

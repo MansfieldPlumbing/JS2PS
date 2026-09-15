@@ -1,0 +1,1 @@
+$s='($y + 1)'; $t=$null;$e=$null; $ast=[System.Management.Automation.Language.Parser]::ParseInput($s,[ref]$t,[ref]$e); $stmt=$ast.EndBlock.Statements[0]; $cmdExpr=$stmt.PipelineElements[0]; $paren=$cmdExpr.Expression; $paren.FindAll({$true},{ $true }) | ForEach-Object { Write-Host "  $($_.GetType().Name) : $($_.Extent.Text)" }
