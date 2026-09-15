@@ -1,0 +1,5 @@
+# These files are immutable upstream package bytes, not locally normalized text.
+/fixtures/ogl/extras/Box.js -text
+/fixtures/ogl/math/Mat4.js -text
+/fixtures/ogl/math/Vec3.js -text
+/fixtures/ogl/package.json -text
