@@ -1,0 +1,20 @@
+name: Fixture provenance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 9 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  ogl:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Compare fixtures with pinned npm package
+        shell: pwsh
+        run: ./tests/Verify-FixtureProvenance.ps1

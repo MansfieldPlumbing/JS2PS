@@ -19,6 +19,13 @@ function Add-ProofResult {
     $results.Add([pscustomobject]@{ Name = $Name; Passed = $true; Records = $output.Count })
 }
 
+Add-ProofResult 'Pinned fixture integrity' {
+    & (Join-Path $PSScriptRoot 'Verify-FixtureIntegrity.ps1')
+} {
+    param($output)
+    @($output).Count -eq 1 -and $output[0].Passed -and $output[0].Files.Count -eq 4
+}
+
 Add-ProofResult 'SourceEdit ledger' {
     & (Join-Path $PSScriptRoot 'Stage0-Ledger.ps1')
 } {

@@ -1,0 +1,28 @@
+{
+  "package": "ogl@1.0.11",
+  "tarball": "https://registry.npmjs.org/ogl/-/ogl-1.0.11.tgz",
+  "integrity": "sha512-kUpC154AFfxi16pmZUK4jk3J+8zxwTWGPo03EoYA8QPbzikHoaC82n6pNTbd+oEaJonaE8aPWBlX7ad9zrqLsA==",
+  "license": "Unlicense",
+  "files": [
+    {
+      "path": "extras/Box.js",
+      "packagePath": "package/src/extras/Box.js",
+      "sha256": "3f3709ef90bd58dfa36422ffab4d53e5796d3ca8813d89f494c397ca3d6e8a62"
+    },
+    {
+      "path": "math/Mat4.js",
+      "packagePath": "package/src/math/Mat4.js",
+      "sha256": "c091a2283bc334e19e17501f33158ba407ae0d3703ac589c15d636ef1bfefca6"
+    },
+    {
+      "path": "math/Vec3.js",
+      "packagePath": "package/src/math/Vec3.js",
+      "sha256": "a05a9e0726df48e62b3ccf7003dd922fddeead3618c8d06a1921644af4cfb121"
+    },
+    {
+      "path": "package.json",
+      "packagePath": "package/package.json",
+      "sha256": "cbc35d2fa9feb333dc58957cec0c1aca9f727fb437c93676b30a3b7d9b1c78f9"
+    }
+  ]
+}

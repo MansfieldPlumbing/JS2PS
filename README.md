@@ -46,6 +46,15 @@ pwsh -NoProfile -File .\tests\Verify.ps1
 pwsh -NoProfile -File .\tests\Verify.ps1 -AssemblyPath <path-to-Esprima.dll>
 ```
 
+The default gate verifies the checked-in OGL files against their pinned local
+hash manifest and does not require network access. A separate scheduled and
+manually runnable provenance check downloads the immutable npm tarball, verifies
+its SHA-512 integrity value, and compares the four retained files byte-for-byte:
+
+```powershell
+pwsh -NoProfile -File .\tests\Verify-FixtureProvenance.ps1
+```
+
 Individual tests without an external parser assembly:
 
 ```powershell
@@ -70,7 +79,7 @@ pwsh -NoProfile -File .\tests\Measure-GraphicsAdmission.ps1 `
 ```text
 tests/        repeatable gates and bounded proofs
 benchmarks/   parser performance probes
-fixtures/     attributed, stable test inputs
+fixtures/     pinned, integrity-checked corpus inputs; see fixtures/README.md
 docs/         generated matrices and bounded claims
 experiments/  exploratory probes that are not release gates
 results/      local generated output
