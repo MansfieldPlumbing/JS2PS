@@ -86,3 +86,7 @@ tools/        matrix-generation utilities
 - moving SMA/IL lowering work into this repository.
 
 SMA and IL emission experiments belong in the separate `SMADirect` project.
+
+## License
+
+JS2PS is available under the MIT License.
