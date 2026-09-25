@@ -1,31 +1,26 @@
 # JS2PS
 
 JS2PS is a research repository whose goal is for PowerShell's
-`System.Management.Automation` (SMA) to consume and execute JavaScript. SMA is the
-parser, the compiler and the runtime. JS2PS is not a JavaScript runtime, a Node
-replacement, or a claim that arbitrary JavaScript already runs.
+`System.Management.Automation` (SMA) to consume and execute TypeScript and
+JavaScript. SMA is the parser, the compiler and the runtime. JS2PS contains no
+JavaScript engine, and nothing here claims that arbitrary programs already run.
 
 ## Approach
 
-Everything is done with SMA's own machinery:
+The telos is SMA as a drop-in replacement for Node: TypeScript and JavaScript run on
+CoreCLR through SMA, with no embedded JavaScript engine. TypeScript is preferred.
 
-- **AST**: SMA's parse results, tokens and syntax tree, including nodes built through
-  their public constructors.
-- **LINQ**: the expression trees SMA's compiler lowers that AST into, with its binders
-  and call sites.
-- **Mutations**: runtime changes to SMA itself, such as `DynamicKeyword` registrations,
-  the tokenizer's keyword, operator and character tables, command vocabulary, extended
-  type data, and binder substitution in the lowered tree. Each is tried speculatively,
-  scored by what SMA then produces, and rolled back when rejected.
-
-These can be combined freely. The search is automated; per-construct rules are not
-written by hand. See `AGENTS.md` for the full contract.
+SMA reads the original source text. The one permitted change is runtime mutation of
+SMA's tokenizer; SMA's own AST, LINQ lowering and execution are observed and scored,
+never rewritten. Mutations form a graph that an automated search explores with
+speculation, hill climbing and exact rollback. See `AGENTS.md` for the full contract
+and the pinned upstream references.
 
 ## Rules
 
 - The JavaScript source is never edited. SMA reads the original text.
-- SMA is changed only at runtime, through its own extension points and state, and
-  every change is reversible.
+- SMA is changed only by runtime mutation of its tokenizer, and every change is
+  reversible.
 - No regular expressions, and no external JavaScript parser or engine.
 
 A construct is not considered supported merely because it parses. Semantic claims
