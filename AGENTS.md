@@ -66,6 +66,11 @@ Do not build a second search engine in JS2PS.
 JS2PS owns the immutable source corpus, the SMA mutation surfaces, the binding and
 lowering observations, and the semantic oracle.
 
+ChangeModel is used by pinned commit, never copied here. Current pin:
+`MansfieldPlumbing/ChangeModel` `1e3d1143d1dd1d5490bbfc72f951185a65f46291`
+(branch `claude/js2ps-world-reconstruction`, Gate 7). JS2PS feeds it through
+`tools/Export-LexicalEvidence.ps1` and `tools/Observe-SmaPerception.ps1`.
+
 ## Types and objects
 
 - TypeScript is preferred where available. A type annotation is lowering leverage:
