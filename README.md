@@ -7,23 +7,26 @@ JavaScript engine, and nothing here claims that arbitrary programs already run.
 
 ## Approach
 
-The telos is SMA as a drop-in replacement for Node: TypeScript and JavaScript run on
-CoreCLR through SMA, with no embedded JavaScript engine. TypeScript is preferred.
+SMA and CoreCLR become the execution substrate for existing TypeScript and
+JavaScript. The source does not move; SMA's perception of it moves, through
+reversible runtime mutations of SMA's own seams, searched under ChangeModel's
+discipline. Every successful lowering is kept and the next run starts from the
+deepest valid one:
 
-SMA reads the original source text. The one permitted change is runtime mutation of
-SMA's tokenizer; SMA's own AST, LINQ lowering and execution are observed and scored,
-never rewritten. SMA binds the program to its host through its own binders and
-extended type data, so the program runs unchanged as if on Node, and SMA's threads are
-available to the host. Mutations form a graph that an automated search explores with
-speculation, hill climbing and exact rollback. See `AGENTS.md` for the full contract
-and the pinned upstream references.
+```text
+TS/JS source -> SMA admission -> semantic and binding facts -> LINQ
+             -> persisted managed assembly -> RyuJIT
+```
+
+Node is the semantic oracle, never a dependency. See `AGENTS.md` for the full
+contract.
 
 ## Rules
 
-- The JavaScript source is never edited. SMA reads the original text.
-- SMA is changed only by runtime mutation of its tokenizer, and every change is
-  reversible.
-- No regular expressions, and no external JavaScript parser or engine.
+- The source is never edited.
+- No regular expressions, and no external parser, compiler or engine in the product
+  path.
+- Every mutation is reversible and replayable.
 
 A construct is not considered supported merely because it parses. Semantic claims
 require an executable conformance case with an expected result.

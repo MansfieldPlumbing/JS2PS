@@ -1,59 +1,98 @@
 # JS2PS repository contract
 
-## Telos
+## What JS2PS is
 
-`System.Management.Automation` (SMA) becomes a drop-in replacement for Node.
-TypeScript and JavaScript programs run on CoreCLR through SMA, in the same process
-and runspace as PowerShell, with no V8, browser engine, WebView or embedded
-JavaScript engine.
+JS2PS makes SMA and CoreCLR the execution substrate for existing TypeScript and
+JavaScript software. The original source stays authoritative and unchanged.
 
-What follows from that is the reason for this repository:
+JS2PS is not a transpiler, not a syntax-rewrite project, and not a
+reimplementation of Node or V8 in PowerShell. The source does not move; SMA's
+perception of the source moves.
 
-- Every pure TypeScript or JavaScript library, the whole CDN and npm registry,
-  becomes something a PowerShell runspace can load and run.
-- pwsh becomes a native binding for the web platform, the role Chrome's bindings
-  play for Blink: a minimal HTML container with TypeScript is an application,
-  and its DOM and canvas are bound to native surfaces (QuickPS on Windows, Pwsh on
-  Android).
-- TypeScript is preferred over JavaScript. Its types are richer, and typed code
-  lowers to LINQ with fewer dynamic binders (PSPersistence's
-  `probes/Test-SmaCompilation.ps1`: typed parameters remove the binders untyped
-  ones need), which is the shape PSPersistence can persist.
+The larger program: PowerShell replaces C# as the managed implementation language.
+SMA is the compiler infrastructure, managed PE/IL is the durable executable
+artifact, and RyuJIT is the native code generator. Roslyn is never required.
 
-Conformance is judged program by program: the same program in Node and in SMA
-must produce the same observable result.
+## Always descend
 
-## How SMA consumes the source
+```text
+TS/JS source -> SMA admission -> semantic and binding facts -> LINQ
+             -> persisted managed assembly -> RyuJIT
+```
 
-- SMA is the parser, the compiler and the runtime.
-- The source is the floor and is read-only. The TypeScript or JavaScript text is
-  never edited, rewritten, or regenerated.
-- The one permitted change to how SMA reads the source is runtime mutation of its
-  tokenizer, applied while SMA reads the original text. Nothing below the source is written, and SMA's AST
-  and LINQ are not rewritten by hand.
-- SMA's AST, its LINQ lowering and the execution result are observed and scored.
-  They are the judges.
-- Mutations form a graph: each mutation is a node, with edges for what it enables,
-  what it conflicts with and what must precede it. The search does not simply
-  stream the source through: it speculates, hill-climbs, rolls back exactly, and
-  discards readings that are not even wrong. Do not hand-write per-construct
-  rules.
-- SMA binds itself. Runtime concepts JavaScript expects (object methods, globals,
-  host APIs) are supplied as extended type data and .NET objects that SMA's own
-  binders resolve; that is also how JavaScript gains native bindings. No semantics
-  are hand-written in a separate runtime.
-- The TypeScript or JavaScript program does not know or change. It should,
-  in principle, behave as if it were connected to Node.
-- SMA can run on many threads (runspaces, runspace pools). The host may use that,
-  for example to back Node's worker threads, as long as the program's observable
-  behavior still matches Node.
-- Be creative inside these limits.
+- JavaScript is the source contract, not the preferred execution representation.
+  Dynamic SMA is a holding tier; typed LINQ is lower; persisted IL is lower;
+  RyuJIT is lower; native bindings and specialized hardware are lower still.
+- Retain every successful lowering: the source, the learned representation and
+  features, the LINQ, and the emitted assembly.
+- On the next run, start from the deepest still-valid artifact. Never climb back up
+  unless an invalidated assumption forces it, and never discard a proven lowering.
+
+## Closure
+
+- The production closure starts at PowerShell 7. Anything outside it is a donor or
+  an oracle only.
+- No Roslyn, no generated C#, no Node runtime in the product path, and no external
+  compiler or parser as architectural authority. Node is the semantic oracle, not
+  a dependency.
+
+## How SMA comes to admit the source
+
+- The source is never edited, rewritten or regenerated to make a parser happy.
+- Syntax is not hand-ported construct by construct. Arrow functions, object
+  literals, classes, `new`, TypeScript annotations, `===`, template literals and
+  the rest are fixtures that exert pressure on the mutation graph, not a backlog
+  of rewrite rules.
+- The mutation graph searches the legal SMA seams: tokenizer state, parser and
+  tokenizer coordination, token identity, type interpretation, binder and operator
+  selection, extended type data and type vocabulary, object adapters, and other
+  runtime representation choices.
+- Every mutation is reversible and replayable, and a test proves the restore.
+- If SMA admits and binds the unchanged source, retain the result and lower it
+  further. If no reachable mutation can represent the required semantics, report a
+  representational gap and extend the mutation vocabulary.
+
+## Search discipline (ChangeModel)
+
+ChangeModel owns the hill climb, contradiction detection, replay and promotion.
+Do not build a second search engine in JS2PS.
+
+- If the representation is adequate and the wrong interpretation was chosen,
+  change the delta or search parameters.
+- If two semantically different cases collapse to the same representation and no
+  parameter choice separates them, the result is not even wrong: the
+  representation itself must gain a new distinction.
+
+JS2PS owns the immutable source corpus, the SMA mutation surfaces, the binding and
+lowering observations, and the semantic oracle.
+
+## Types and objects
+
+- TypeScript is preferred where available. A type annotation is lowering leverage:
+  if it can become a CLR or SMA type fact that removes binders and yields better
+  LINQ and IL, it is not skipped.
+- Runtime objects are bound capabilities, not reconstructed JSON. `console`, DOM
+  objects, canvas, native Windows and Android objects are bound through SMA.
+  Values cross by value; objects cross by opaque identity. SMA is the binding
+  fabric, and SMA's threads are available to the host.
+- Chrome is not the architecture. It may be a willing peer; Windows and Android are
+  first-class peers too. A DOM object, native control, DirectX resource, Binder
+  object or browser object can all take part in one logical object universe.
+
+## Corpus and milestone
+
+- Real CDN and npm packages are the corpus; ECMAScript is not "finished"
+  abstractly. Each failed package is evidence for the mutation graph; each
+  successful admission becomes a regression fixture and a persisted lowering.
+- The milestone is not a percentage of syntax. It is: this unmodified TypeScript or
+  JavaScript application or library runs under SMA, binds to native Windows,
+  Android or browser objects, and persists as a managed assembly, with no Node, V8,
+  Roslyn or source rewriting.
 
 ## Upstream first
 
 Read the pinned upstream source before probing runtime behavior. A claim about SMA,
-TypeScript, JavaScript or the web platform cites the file and line it comes from;
-experiments confirm what the source says, they do not replace reading it.
+TypeScript, JavaScript or the web platform cites the file and line it comes from.
 
 | Reference | Ref | Commit |
 | --- | --- | --- |
@@ -62,17 +101,15 @@ experiments confirm what the source says, they do not replace reading it.
 | ECMA-262, `spec.html` | `main` | `726ec8a42625509026a6570f1d4649bfa9fe4156` |
 | WebIDL (w3c/webref curated), `ed/idl` | `curated` | `89e7d68c6612fbedb740c1632d36e482ca39e999` |
 
-Upstream sources are read from a checkout outside this repository and are never
-vendored here. Match the SMA reference to the PowerShell version under test.
+Upstream sources are read from a checkout outside this repository and never
+vendored. Match the SMA reference to the PowerShell version under test.
 
 ## Rules
 
 - Never edit the source.
 - No regular expressions, anywhere.
-- No external JavaScript or TypeScript parser or engine.
-- Every runtime mutation is reversible, and a test proves the restore.
 - A construct is not supported because it parses. Semantic claims need an
-  executable conformance case with an expected result, checked against Node.
+  executable case checked against Node.
 
 ## Layout
 
@@ -81,5 +118,5 @@ vendored here. Match the SMA reference to the PowerShell version under test.
 - `fixtures/` holds pinned, integrity-checked inputs.
 - `results/` is generated output and is never source.
 
-IL emission, persisted assemblies and the Android appliance live in the
-`PSPersistence` and `Pwsh` repositories, not here.
+Persisted assemblies and the Android appliance live in `PSPersistence` and `Pwsh`;
+native Windows bindings live in `QuickPS`.
