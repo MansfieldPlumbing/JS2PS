@@ -28,8 +28,8 @@ must produce the same observable result.
 - SMA is the parser, the compiler and the runtime.
 - The source is the floor and is read-only. The TypeScript or JavaScript text is
   never edited, rewritten, or regenerated.
-- The one permitted change is runtime mutation of SMA's tokenizer, applied while
-  SMA reads the original text. Nothing below the source is written, and SMA's AST
+- The one permitted change to how SMA reads the source is runtime mutation of its
+  tokenizer, applied while SMA reads the original text. Nothing below the source is written, and SMA's AST
   and LINQ are not rewritten by hand.
 - SMA's AST, its LINQ lowering and the execution result are observed and scored.
   They are the judges.
@@ -38,6 +38,15 @@ must produce the same observable result.
   stream the source through: it speculates, hill-climbs, rolls back exactly, and
   discards readings that are not even wrong. Do not hand-write per-construct
   rules.
+- SMA binds itself. Runtime concepts JavaScript expects (object methods, globals,
+  host APIs) are supplied as extended type data and .NET objects that SMA's own
+  binders resolve; that is also how JavaScript gains native bindings. No semantics
+  are hand-written in a separate runtime.
+- The TypeScript or JavaScript program does not know or change. It should,
+  in principle, behave as if it were connected to Node.
+- SMA can run on many threads (runspaces, runspace pools). The host may use that,
+  for example to back Node's worker threads, as long as the program's observable
+  behavior still matches Node.
 - Be creative inside these limits.
 
 ## Upstream first

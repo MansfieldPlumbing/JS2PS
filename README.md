@@ -12,7 +12,9 @@ CoreCLR through SMA, with no embedded JavaScript engine. TypeScript is preferred
 
 SMA reads the original source text. The one permitted change is runtime mutation of
 SMA's tokenizer; SMA's own AST, LINQ lowering and execution are observed and scored,
-never rewritten. Mutations form a graph that an automated search explores with
+never rewritten. SMA binds the program to its host through its own binders and
+extended type data, so the program runs unchanged as if on Node, and SMA's threads are
+available to the host. Mutations form a graph that an automated search explores with
 speculation, hill climbing and exact rollback. See `AGENTS.md` for the full contract
 and the pinned upstream references.
 
