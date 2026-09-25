@@ -2,19 +2,19 @@
 
 > Generated exploratory output. Parser acceptance and the classifications below are observations, not compatibility guarantees. See the repository README and executable proofs for current claims.
 
+
 ## Environment
 
 - pwsh path: local PowerShell executable (machine-specific path omitted)
-- PSVersion: 7.7.0-preview.3
-- PSVersionTable: {"SerializationVersion":{"Major":1,"Minor":1,"Build":0,"Revision":1,"MajorRevision":0,"MinorRevision":1},"Platform":"Win32NT","PSVersion":{"Major":7,"Minor":7,"Patch":0,"PreReleaseLabel":"preview.3","BuildLabel":null},"PSEdition":"Core","GitCommitId":"7.7.0-preview.3","OS":"Microsoft Windows 10.0.28000","PSCompatibleVersions":[{"Major":1,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":2,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":3,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":4,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":5,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":5,"Minor":1,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":6,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":7,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1}],"WSManStackVersion":{"Major":3,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},"PSRemotingProtocolVersion":{"Major":2,"Minor":4,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1}}
+- PSVersion: 7.7.0-preview.5
+- PSVersionTable: {"PSCompatibleVersions":[{"Major":1,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":2,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":3,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":4,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":5,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":5,"Minor":1,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":6,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},{"Major":7,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1}],"PSVersion":{"Major":7,"Minor":7,"Patch":0,"PreReleaseLabel":"preview.5","BuildLabel":null},"PSRemotingProtocolVersion":{"Major":2,"Minor":4,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},"Platform":"Unix","WSManStackVersion":{"Major":3,"Minor":0,"Build":-1,"Revision":-1,"MajorRevision":-1,"MinorRevision":-1},"PSEdition":"Core","SerializationVersion":{"Major":1,"Minor":1,"Build":0,"Revision":1,"MajorRevision":0,"MinorRevision":1},"OS":"Ubuntu 24.04.4 LTS","GitCommitId":"7.7.0-preview.5"}
 - PowerShell source commit: 1481b98f0079f979f658e49a7281024cc754049b
-- Generated: 2026-09-13T06:03:28.4698950-04:00
-
+- Generated: 2026-09-25T09:35:21.2820319+00:00
 ## comment-command-//
 
 **Source:** `function // { "CALLED" } // THIS LOOKS LIKE A COMMENT`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -39,7 +39,7 @@
 
 **Source:** `const Draw = { param($x); "hi" }`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT-WITH-COMMAND
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -64,7 +64,7 @@
 
 **Source:** `let x = 1`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT-WITH-COMMAND
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -82,7 +82,7 @@
 
 **Source:** `await something`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT-WITH-COMMAND
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -98,7 +98,7 @@
 
 **Source:** `typeof x`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -132,7 +132,7 @@
 
 **Source:** `function Windows.Canvas.Text { } Windows.Canvas.Text`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -151,7 +151,7 @@
 
 **Source:** `$obj.Windows.Canvas.Text`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -172,7 +172,7 @@
 
 **Source:** `$a === $b`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** MECHANICAL-REWRITE
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -190,7 +190,7 @@
 
 **Source:** `$a == $b`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -227,7 +227,7 @@
 
 **Source:** `$a && $b`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** MECHANICAL-REWRITE
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -244,7 +244,7 @@
 
 **Source:** `$a || $b`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** MECHANICAL-REWRITE
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -261,7 +261,7 @@
 
 **Source:** `!$a`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -277,7 +277,7 @@
 
 **Source:** `$a++`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -293,7 +293,7 @@
 
 **Source:** `$a--`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -309,7 +309,7 @@
 
 **Source:** `$a ?? $b`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** MECHANICAL-REWRITE
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -326,7 +326,7 @@
 
 **Source:** `$a ??= $b`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** MECHANICAL-REWRITE
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -343,7 +343,7 @@
 
 **Source:** `$a ? $b : $c`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -362,7 +362,7 @@
 
 **Source:** `const f = (x) => { "x" }`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT-WITH-COMMAND
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -386,7 +386,7 @@
 
 **Source:** `{ x: 1 }`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -404,7 +404,7 @@
 
 **Source:** `@($a,$b,$c)`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -444,7 +444,7 @@
 
 **Source:** `for ($i=0;$i -lt 10;$i++) { }`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -473,7 +473,7 @@
 
 **Source:** `for (let x of $arr) { }`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT-WITH-COMMAND
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -496,7 +496,7 @@
 
 **Source:** `for (let x in $obj) { }`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT-WITH-COMMAND
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -519,7 +519,7 @@
 
 **Source:** `foreach ($x in $arr) { }`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -541,7 +541,7 @@
 
 **Source:** `params => this.insertChars(params)`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** MECHANICAL-REWRITE
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
@@ -592,7 +592,7 @@
 
 **Source:** `$this._activeBuffer.y--`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -612,7 +612,7 @@
 
 **Source:** `while ($param--) { }`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -643,7 +643,7 @@
 | Kind | Text |
 |------|------|
 | Generic | /* |
-| NewLine |
+| NewLine | 
  |
 | Multiply | * |
 | Pipe | \| |
@@ -653,7 +653,7 @@
 | Identifier | Col |
 | Number | 2 |
 | Pipe | \| |
-| NewLine |
+| NewLine | 
  |
 | Multiply | * |
 | Pipe | \| |
@@ -665,7 +665,7 @@
 | MinusMinus | -- |
 | Minus | - |
 | Pipe | \| |
-| NewLine |
+| NewLine | 
  |
 | Generic | */ |
 | EndOfInput |  |
@@ -676,7 +676,7 @@
 
 **Source:** `$a, $b = $arr`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -695,7 +695,7 @@
 
 **Source:** `@($a, @($b))`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -716,7 +716,7 @@
 
 **Source:** `"Hello "`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -731,7 +731,7 @@
 
 **Source:** `$obj?.prop`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** EXPRESSION
 
 **Tokens:**
 
@@ -748,7 +748,7 @@
 
 **Source:** `function console.log { } console.log "hi"`
 
-**Parseable:** True | **Errors:** 0 | **Classification:** DIRECT
+**Parseable:** True | **Errors:** 0 | **Classification:** COMMAND
 
 **Tokens:**
 
