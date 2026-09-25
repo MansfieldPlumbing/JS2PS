@@ -66,23 +66,12 @@ function Probe-Fragment {
             }
         }
     }
-    # Simple heuristic for classification
-    $classification = 'UNKNOWN'
-    if ($errorCount -gt 0) {
-        $classification = 'HARD'
-    } else {
-        # Check for known patterns
-        if ($Source -match '^\s*//') { $classification = 'DIRECT-WITH-COMMAND' }
-        elseif ($Source -match '\bconst\b|\blet\b|\bawait\b') { $classification = 'DIRECT-WITH-COMMAND' }
-        elseif ($Source -match '===' ) { $classification = 'MECHANICAL-REWRITE' }
-        elseif ($Source -match '&&|\|\|') { $classification = 'MECHANICAL-REWRITE' }
-        elseif ($Source -match '\?\?') { $classification = 'MECHANICAL-REWRITE' }
-        elseif ($Source -match '=>') { $classification = 'MECHANICAL-REWRITE' }
-        elseif ($Source -match '\[\s*\]') { $classification = 'DIRECT' }
-        else {
-            $classification = 'DIRECT'
-        }
-    }
+    # Classification comes from SMA's own parse, never from the source text:
+    # HARD when SMA reports errors, COMMAND when any part was read as a command,
+    # EXPRESSION otherwise.
+    $classification = if ($errorCount -gt 0) { 'HARD' }
+        elseif ($ast -and $ast.Find({ param($a) $a -is [System.Management.Automation.Language.CommandAst] }, $true)) { 'COMMAND' }
+        else { 'EXPRESSION' }
     [PSCustomObject]@{
         Name = $Name
         Source = $Source

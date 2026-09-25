@@ -13,7 +13,11 @@ try {
     New-Item -ItemType Directory -Path $temporaryRoot | Out-Null
     Invoke-WebRequest -Uri $manifest.tarball -OutFile $archivePath
 
-    $expectedIntegrity = $manifest.integrity -replace '^sha512-', ''
+    $integrityPrefix = 'sha512-'
+    if (-not ([string]$manifest.integrity).StartsWith($integrityPrefix, [StringComparison]::Ordinal)) {
+        throw "Pinned integrity value does not start with '$integrityPrefix'."
+    }
+    $expectedIntegrity = ([string]$manifest.integrity).Substring($integrityPrefix.Length)
     $actualIntegrity = [Convert]::ToBase64String(
         [Security.Cryptography.SHA512]::HashData([IO.File]::ReadAllBytes($archivePath)))
     if ($actualIntegrity -cne $expectedIntegrity) {
